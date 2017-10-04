@@ -1,6 +1,8 @@
 SignalR_Server/obj
 SignalR_Server/bin
 
+SignalR_Server/Connectors/ConnectionConstants.cs
+
 *.userprefs
 *.suo
 *.user
