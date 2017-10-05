@@ -125,12 +125,13 @@ namespace SignalR_Server
         #endregion
 
         #region Gameplay methods
+
         // Adds the calling player's answer to the game stats
         public void AddAnswer(M_PlayerAnswer newAnswer, string gameKey)
         {
             M_GameState curGameState = GetGame(gameKey);
-
-            M_AnswerStats curAnswerStats = curGameState.GetAnswerStats();
+            M_AnswerStats curAnswerStats = GetAnswerStats(curGameState);
+            var index = curGameState.GameAnswerStats.IndexOf(curAnswerStats);
 
             if (curAnswerStats.FocusedPlayerAnswer.PlayerAnswer == 0)
             {
@@ -141,7 +142,8 @@ namespace SignalR_Server
                 curAnswerStats.OtherPlayerAnswers.Add(newAnswer);
             }
 
-            curGameState.UpdateAnswerStats(curAnswerStats);
+            curGameState.GameAnswerStats[index] = curAnswerStats;
+
             UpdateGameState(curGameState);
         }        
 
@@ -172,23 +174,30 @@ namespace SignalR_Server
 
         #region Get game value methods
 
-        // Returns the answer stats for the current hand
-        public M_AnswerStats GetHandAnswerStats(string gameKey)
+        // Returns the stats for the finished question
+        public M_AnswerStats GetQuestionStats(string gameKey)
         {
-            M_GameState curGameState = GetGame(gameKey);
-
-            var result = from aStats in curGameState.GameAnswerStats
-                   where aStats.GameRound == curGameState.GameRound && aStats.FocusedPlayerAnswer.PlayerId.Equals(curGameState.FocusedPlayerId)
-                   select aStats;
-
-            return result.First();
+            return GetAnswerStats(GetGame(gameKey));
         }
         
         // Returns the game stats
         public IList<M_AnswerStats> GetGameStats(string gameKey)
         {
+            return GetGame(gameKey).GameAnswerStats;
+        }
+
+        public KeyValuePair<string, M_QuestionCard> GetFocusedPlayerIdAndQuestion(string gameKey)
+        {
             M_GameState curGameState = GetGame(gameKey);
-            return curGameState.GameAnswerStats;
+
+            var result = from qCard in curGameState.GameQuestions
+                         where qCard.QuestionId.Equals(curGameState.FocusedQuestionId)
+                         select qCard;
+
+            M_QuestionCard focusedQuestion = result.First();
+
+            return new KeyValuePair<string, M_QuestionCard>(curGameState.FocusedPlayerId, focusedQuestion);
+            
         }
         
         #endregion
@@ -227,7 +236,7 @@ namespace SignalR_Server
         // Checks if the answer just given is the first answer of the hand
         public bool IsFirstAnswer(string gameKey)
         {
-            if (GetGame(gameKey).GetAnswerStats().OtherPlayerAnswers.Count == 0)
+            if (GetAnswerStats(GetGame(gameKey)).OtherPlayerAnswers.Count == 0)
             {
                 return true;
             }
@@ -243,7 +252,7 @@ namespace SignalR_Server
             //Leave this call because it saves an extra search of the DB
             M_GameState curGameState = GetGame(gameKey);
 
-            if (curGameState.GetAnswerStats().OtherPlayerAnswers.Count == curGameState.GamePlayers.Count - 1)
+            if (GetAnswerStats(curGameState).OtherPlayerAnswers.Count == curGameState.GamePlayers.Count - 1)
             {
                 return true;
             }
@@ -256,6 +265,17 @@ namespace SignalR_Server
         #endregion
 
         #region Helper methods
+
+        // Returns the answer stats for the current hand
+        private M_AnswerStats GetAnswerStats(M_GameState curGameState)
+        {
+            var result = from aStats in curGameState.GameAnswerStats
+                         where aStats.GameRound == curGameState.GameRound 
+                         && aStats.FocusedPlayerAnswer.PlayerId.Equals(curGameState.FocusedPlayerId)
+                         select aStats;
+
+            return result.First();
+        }
 
         // Updates the given game state on the DB
         private void UpdateGameState(M_GameState curGameState)

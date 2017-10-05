@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.AspNet.SignalR;
 using SignalR_Server.Models;
 using SignalR_Server.Connectors;
+using System.Linq;
 
 namespace SignalR_Server.Hubs
 {
@@ -68,8 +69,9 @@ namespace SignalR_Server.Hubs
 
                 if (beginGame)
                 {
-                    M_GameState curGameState = gameController.GetGame(gameKey);
-                    Clients.Group(gameKey).DisplayQuestion(curGameState.FocusedPlayerId, curGameState.GetFocusedQuestion());
+                    var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);
+                    
+                    Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Key, PlayerAndQuestion.Value);
                 }
             }
             catch (Exception e)
@@ -96,7 +98,7 @@ namespace SignalR_Server.Hubs
             }
             else if (gameController.IsLastAnswer(gameKey))
             {
-                Clients.All.DisplayQuestionStats(gameController.GetHandAnswerStats(gameKey));
+                Clients.All.DisplayQuestionStats(gameController.GetQuestionStats(gameKey));
             }
         }
 

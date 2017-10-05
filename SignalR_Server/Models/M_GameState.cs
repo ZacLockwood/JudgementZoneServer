@@ -73,31 +73,7 @@ namespace SignalR_Server.Models
         #endregion
 
         #region Helper Methods
-
-        //THIS IS TERRIBLE, CHANGE LATER
-        public void UpdateAnswerStats(M_AnswerStats newAnswerStats)
-        {
-            int i = 0;
-            while (GameAnswerStats[i].GameRound != GameRound || !GameAnswerStats[i].FocusedPlayerAnswer.PlayerId.Equals(FocusedPlayerId))
-            {
-                i++;
-            }
-
-            GameAnswerStats[i] = newAnswerStats;
-        }
-        
-        //THIS IS TERRIBLE, CHANGE LATER
-        public M_QuestionCard GetFocusedQuestion()
-        {
-            int i = 0;
-            while (!GameQuestions[i].QuestionId.Equals(FocusedQuestionId))
-            {
-                i++;
-            }
-
-            return GameQuestions[i];
-        }
-
+                
         public void GenerateNextQuestion()
         {
             FocusedQuestionId = GameQuestions[QuestionCount].QuestionId;
