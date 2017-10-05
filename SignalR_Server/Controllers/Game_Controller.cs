@@ -174,8 +174,14 @@ namespace SignalR_Server
 
         // Returns the answer stats for the current hand
         public M_AnswerStats GetHandAnswerStats(string gameKey)
-        {            
-            return GetGame(gameKey).GetAnswerStats();
+        {
+            M_GameState curGameState = GetGame(gameKey);
+
+            var result = from aStats in curGameState.GameAnswerStats
+                   where aStats.GameRound == curGameState.GameRound && aStats.FocusedPlayerAnswer.PlayerId.Equals(curGameState.FocusedPlayerId)
+                   select aStats;
+
+            return result.First();
         }
         
         // Returns the game stats

@@ -75,18 +75,6 @@ namespace SignalR_Server.Models
         #region Helper Methods
 
         //THIS IS TERRIBLE, CHANGE LATER
-        public M_AnswerStats GetAnswerStats()
-        {
-            int i = 0;
-            while (GameAnswerStats[i].GameRound != GameRound || !GameAnswerStats[i].FocusedPlayerAnswer.PlayerId.Equals(FocusedPlayerId))
-            {
-                i++;
-            }
-
-            return GameAnswerStats[i];
-        }
-
-        //THIS IS TERRIBLE, CHANGE LATER
         public void UpdateAnswerStats(M_AnswerStats newAnswerStats)
         {
             int i = 0;
