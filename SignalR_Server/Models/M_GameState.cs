@@ -1,5 +1,4 @@
 using System;
-using Realms;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 using System.Collections.Generic;
@@ -23,7 +22,7 @@ namespace SignalR_Server.Models
         [BsonElement("GameRound")]
         public int GameRound { get; set; }
 
-      [BsonElement("FocusedPlayerId")]
+        [BsonElement("FocusedPlayerId")]
         public string FocusedPlayerId { get; set; }
       
 		[BsonElement("FocusedQuestionId")]
@@ -34,6 +33,9 @@ namespace SignalR_Server.Models
 
         [BsonElement("StartRequests")]
         public int StartRequests { get; set; }
+
+        [BsonElement("QuestionCount")]
+        public int QuestionCount { get; set; }
 
         #region Constructors
 
@@ -47,6 +49,7 @@ namespace SignalR_Server.Models
             GameType = 1;
             GameRound = 1;
             StartRequests = 0;
+            QuestionCount = 0;
 
             GamePlayers = new List<M_Player>();
             GameQuestions = new List<M_QuestionCard>();
@@ -109,14 +112,9 @@ namespace SignalR_Server.Models
 
         public void GenerateNextQuestion()
         {
-            int i = new Random().Next(0, GameQuestions.Count);
+            FocusedQuestionId = GameQuestions[QuestionCount].QuestionId;
+            QuestionCount++;
 
-            while (GameQuestions[i].GameRound != GameRound)
-            {
-                i = new Random().Next(0, GameQuestions.Count);
-            }
-
-            FocusedQuestionId = GameQuestions[i].QuestionId;
             M_PlayerAnswer emptyFocusedPlayerAnswer = new M_PlayerAnswer(FocusedPlayerId);
 
             M_AnswerStats newAnswerStats = new M_AnswerStats(FocusedQuestionId, GameRound, emptyFocusedPlayerAnswer, GameId);

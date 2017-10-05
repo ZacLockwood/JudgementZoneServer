@@ -103,7 +103,7 @@ namespace SignalR_Server
 
             try
             {
-                list = dbConnector.PullInQuestions();
+                list = dbConnector.PullInQuestions(curGameState.GamePlayers.Count, 3);
             }
             catch (Exception e)
             {
