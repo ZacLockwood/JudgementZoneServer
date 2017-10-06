@@ -35,13 +35,11 @@ namespace SignalR_Server
             try
             {
                 collection.InsertOne(newGameState);
-
                 return newGameState;
             }
             catch (MongoCommandException ex)
             {
                 string msg = ex.Message;
-
                 return null;
             }
         }
@@ -53,12 +51,11 @@ namespace SignalR_Server
             {
                 M_GameState curGameState = GetGame(gameKey);
                 curGameState.GamePlayers.Add(myPlayer);
-
                 UpdateGameState(curGameState);
             }
             catch (Exception e)
             {
-                throw new Exception("Couldn't add the player to the game.");
+                throw new Exception("Couldn't add the player to the game.", e);
             }
         }
 
@@ -70,10 +67,9 @@ namespace SignalR_Server
                 M_GameState curGameState = GetGame(gameKey);
                 return curGameState.GamePlayers;
             }
-            catch (MongoConnectionException ex)
+            catch (Exception e)
             {
-                string msg = ex.Message;
-                return null;
+                throw new Exception("Couldn't get the player list.", e);
             }
         }
 
@@ -103,7 +99,7 @@ namespace SignalR_Server
 
             try
             {
-                list = dbConnector.PullInQuestions();
+                list = dbConnector.PullInQuestions(curGameState.GamePlayers.Count, 3);
             }
             catch (Exception e)
             {
@@ -125,12 +121,13 @@ namespace SignalR_Server
         #endregion
 
         #region Gameplay methods
+
         // Adds the calling player's answer to the game stats
         public void AddAnswer(M_PlayerAnswer newAnswer, string gameKey)
         {
             M_GameState curGameState = GetGame(gameKey);
-
-            M_AnswerStats curAnswerStats = curGameState.GetAnswerStats();
+            M_AnswerStats curAnswerStats = GetAnswerStats(curGameState);
+            var index = curGameState.GameAnswerStats.IndexOf(curAnswerStats);
 
             if (curAnswerStats.FocusedPlayerAnswer.PlayerAnswer == 0)
             {
@@ -141,7 +138,7 @@ namespace SignalR_Server
                 curAnswerStats.OtherPlayerAnswers.Add(newAnswer);
             }
 
-            curGameState.UpdateAnswerStats(curAnswerStats);
+            curGameState.GameAnswerStats[index] = curAnswerStats;
             UpdateGameState(curGameState);
         }        
 
@@ -162,7 +159,17 @@ namespace SignalR_Server
         {
             M_GameState curGameState = GetGame(gameKey);
 
-            curGameState.ChooseNextFocusedPlayer();
+            // Finds the focused player in the GamePlayers list
+            var result = from player in curGameState.GamePlayers
+                         where player.PlayerId == curGameState.FocusedPlayerId
+                         select player;
+
+            // Finds the index of the focused player in the GamePlayers list
+            var focusedPlayer = result.First();
+            var index = curGameState.GamePlayers.IndexOf(focusedPlayer);
+
+            // Updates the focused player id to the new focused player
+            curGameState.FocusedPlayerId = curGameState.GamePlayers[index + 1].PlayerId;
             curGameState.GenerateNextQuestion();
 
             UpdateGameState(curGameState);
@@ -172,17 +179,30 @@ namespace SignalR_Server
 
         #region Get game value methods
 
-        // Returns the answer stats for the current hand
-        public M_AnswerStats GetHandAnswerStats(string gameKey)
-        {            
-            return GetGame(gameKey).GetAnswerStats();
+        // Returns the stats for the finished question
+        public M_AnswerStats GetQuestionStats(string gameKey)
+        {
+            return GetAnswerStats(GetGame(gameKey));
         }
         
         // Returns the game stats
         public IList<M_AnswerStats> GetGameStats(string gameKey)
         {
+            return GetGame(gameKey).GameAnswerStats;
+        }
+
+        public KeyValuePair<string, M_QuestionCard> GetFocusedPlayerIdAndQuestion(string gameKey)
+        {
             M_GameState curGameState = GetGame(gameKey);
-            return curGameState.GameAnswerStats;
+
+            var result = from qCard in curGameState.GameQuestions
+                         where qCard.QuestionId.Equals(curGameState.FocusedQuestionId)
+                         select qCard;
+
+            M_QuestionCard focusedQuestion = result.First();
+
+            return new KeyValuePair<string, M_QuestionCard>(curGameState.FocusedPlayerId, focusedQuestion);
+            
         }
         
         #endregion
@@ -221,7 +241,7 @@ namespace SignalR_Server
         // Checks if the answer just given is the first answer of the hand
         public bool IsFirstAnswer(string gameKey)
         {
-            if (GetGame(gameKey).GetAnswerStats().OtherPlayerAnswers.Count == 0)
+            if (GetAnswerStats(GetGame(gameKey)).OtherPlayerAnswers.Count == 0)
             {
                 return true;
             }
@@ -237,7 +257,7 @@ namespace SignalR_Server
             //Leave this call because it saves an extra search of the DB
             M_GameState curGameState = GetGame(gameKey);
 
-            if (curGameState.GetAnswerStats().OtherPlayerAnswers.Count == curGameState.GamePlayers.Count - 1)
+            if (GetAnswerStats(curGameState).OtherPlayerAnswers.Count == curGameState.GamePlayers.Count - 1)
             {
                 return true;
             }
@@ -250,6 +270,17 @@ namespace SignalR_Server
         #endregion
 
         #region Helper methods
+
+        // Returns the answer stats for the current hand
+        private M_AnswerStats GetAnswerStats(M_GameState curGameState)
+        {
+            var result = from aStats in curGameState.GameAnswerStats
+                         where aStats.GameRound == curGameState.GameRound 
+                         && aStats.FocusedPlayerAnswer.PlayerId.Equals(curGameState.FocusedPlayerId)
+                         select aStats;
+
+            return result.First();
+        }
 
         // Updates the given game state on the DB
         private void UpdateGameState(M_GameState curGameState)
@@ -269,10 +300,9 @@ namespace SignalR_Server
                 var filter = Builders<M_GameState>.Filter.Eq("_id", gameKey);
                 return collection.Find(filter).FirstOrDefault();
             }
-            catch (MongoConnectionException ex)
+            catch (Exception e)
             {
-                string msg = ex.Message;
-                return null;
+                throw new Exception("Couldn't retrieve the game from the database.", e);
             }
         }
 
