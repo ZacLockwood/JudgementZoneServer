@@ -69,8 +69,7 @@ namespace SignalR_Server.Hubs
 
                 if (beginGame)
                 {
-                    var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);
-                    
+                    var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);                    
                     Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Key, PlayerAndQuestion.Value);
                 }
             }
@@ -116,16 +115,16 @@ namespace SignalR_Server.Hubs
                 {
                     gameController.BeginNewRound(gameKey);
 
-                    M_GameState curGameState = gameController.GetGame(gameKey);
-                    Clients.Group(gameKey).DisplayQuestion(curGameState.FocusedPlayerId, curGameState.GetFocusedQuestion());
+                    var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);
+                    Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Key, PlayerAndQuestion.Value);
                 }
             }
             else
             {
                 gameController.BeginNewQuestion(gameKey);
 
-                M_GameState curGameState = gameController.GetGame(gameKey);
-                Clients.Group(gameKey).DisplayQuestion(curGameState.FocusedPlayerId, curGameState.GetFocusedQuestion());
+                var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);
+                Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Key, PlayerAndQuestion.Value);
             }
         }
 
