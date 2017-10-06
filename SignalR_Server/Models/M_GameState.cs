@@ -86,18 +86,6 @@ namespace SignalR_Server.Models
             GameAnswerStats.Add(newAnswerStats);
         }
 
-        public void ChooseNextFocusedPlayer()
-        {
-            int i = 0;
-            while (!GamePlayers[i].PlayerId.Equals(FocusedPlayerId))
-            {
-                i++;
-            }
-
-            FocusedPlayerId = GamePlayers[i + 1].PlayerId;
-
-        }
-
         #endregion
     }
 }

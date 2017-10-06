@@ -39,7 +39,6 @@ namespace SignalR_Server.Hubs
         //Client requests to join game
         public void RequestJoinGame(M_Player myPlayer, string gameKey)
         {
-
             if (gameController.GetGame(gameKey).GameQuestions.Count == 0)
             {
                 try
@@ -101,7 +100,7 @@ namespace SignalR_Server.Hubs
             }
         }
 
-        //Client[FP] requests continue
+        //Client [Focused player] requests continue
         public void RequestContinueToNextQuestion(string gameKey)
         {
             if (gameController.IsRoundOver(gameKey))
@@ -134,10 +133,8 @@ namespace SignalR_Server.Hubs
 
         private void UpdatePlayerListScreen(string gameKey)
         {
-            IList<M_Player> playerList = gameController.GetPlayerList(gameKey);
-
             Clients.Caller.DisplayGameKey(gameKey);
-            Clients.Group(gameKey).DisplayPlayerList(playerList);
+            Clients.Group(gameKey).DisplayPlayerList(gameController.GetPlayerList(gameKey));
         }
 
         #endregion
