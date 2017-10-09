@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.AspNet.SignalR;
 using SignalR_Server.Models;
 using SignalR_Server.Connectors;
+using System.Linq;
 
 namespace SignalR_Server.Hubs
 {
@@ -38,7 +39,6 @@ namespace SignalR_Server.Hubs
         //Client requests to join game
         public void RequestJoinGame(M_Player myPlayer, string gameKey)
         {
-
             if (gameController.GetGame(gameKey).GameQuestions.Count == 0)
             {
                 try
@@ -68,8 +68,8 @@ namespace SignalR_Server.Hubs
 
                 if (beginGame)
                 {
-                    M_GameState curGameState = gameController.GetGame(gameKey);
-                    Clients.Group(gameKey).DisplayQuestion(curGameState.FocusedPlayerId, curGameState.GetFocusedQuestion());
+                    var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);                    
+                    Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Key, PlayerAndQuestion.Value);
                 }
             }
             catch (Exception e)
@@ -96,11 +96,11 @@ namespace SignalR_Server.Hubs
             }
             else if (gameController.IsLastAnswer(gameKey))
             {
-                Clients.All.DisplayQuestionStats(gameController.GetHandAnswerStats(gameKey));
+                Clients.All.DisplayQuestionStats(gameController.GetQuestionStats(gameKey));
             }
         }
 
-        //Client[FP] requests continue
+        //Client [Focused player] requests continue
         public void RequestContinueToNextQuestion(string gameKey)
         {
             if (gameController.IsRoundOver(gameKey))
@@ -114,16 +114,16 @@ namespace SignalR_Server.Hubs
                 {
                     gameController.BeginNewRound(gameKey);
 
-                    M_GameState curGameState = gameController.GetGame(gameKey);
-                    Clients.Group(gameKey).DisplayQuestion(curGameState.FocusedPlayerId, curGameState.GetFocusedQuestion());
+                    var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);
+                    Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Key, PlayerAndQuestion.Value);
                 }
             }
             else
             {
                 gameController.BeginNewQuestion(gameKey);
 
-                M_GameState curGameState = gameController.GetGame(gameKey);
-                Clients.Group(gameKey).DisplayQuestion(curGameState.FocusedPlayerId, curGameState.GetFocusedQuestion());
+                var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);
+                Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Key, PlayerAndQuestion.Value);
             }
         }
 
@@ -133,10 +133,8 @@ namespace SignalR_Server.Hubs
 
         private void UpdatePlayerListScreen(string gameKey)
         {
-            IList<M_Player> playerList = gameController.GetPlayerList(gameKey);
-
             Clients.Caller.DisplayGameKey(gameKey);
-            Clients.Group(gameKey).DisplayPlayerList(playerList);
+            Clients.Group(gameKey).DisplayPlayerList(gameController.GetPlayerList(gameKey));
         }
 
         #endregion

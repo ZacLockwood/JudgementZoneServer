@@ -44,7 +44,7 @@ namespace SignalR_Server.Connectors
             return collection;
         }
 
-        public IMongoDatabase GetDatabase()
+        private IMongoDatabase GetDatabase()
         {
             MongoClientSettings settings = new MongoClientSettings();
             settings.Server = new MongoServerAddress(host, 10255);
