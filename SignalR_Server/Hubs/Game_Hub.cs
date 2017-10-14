@@ -69,7 +69,7 @@ namespace SignalR_Server.Hubs
                 if (beginGame)
                 {
                     var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);                    
-                    Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Key, PlayerAndQuestion.Value);
+                    Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Item1, PlayerAndQuestion.Item2);
                 }
             }
             catch (Exception e)
@@ -115,7 +115,7 @@ namespace SignalR_Server.Hubs
                     gameController.BeginNewRound(gameKey);
 
                     var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);
-                    Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Key, PlayerAndQuestion.Value);
+                    Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Item1, PlayerAndQuestion.Item2);
                 }
             }
             else
@@ -123,7 +123,7 @@ namespace SignalR_Server.Hubs
                 gameController.BeginNewQuestion(gameKey);
 
                 var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);
-                Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Key, PlayerAndQuestion.Value);
+                Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Item1, PlayerAndQuestion.Item2);
             }
         }
 

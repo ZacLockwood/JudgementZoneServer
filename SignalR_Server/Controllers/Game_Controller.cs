@@ -191,7 +191,7 @@ namespace SignalR_Server
             return GetGame(gameKey).GameAnswerStats;
         }
 
-        public KeyValuePair<string, M_QuestionCard> GetFocusedPlayerIdAndQuestion(string gameKey)
+        public Tuple<string, M_QuestionCard> GetFocusedPlayerIdAndQuestion(string gameKey)
         {
             M_GameState curGameState = GetGame(gameKey);
 
@@ -201,7 +201,7 @@ namespace SignalR_Server
 
             M_QuestionCard focusedQuestion = result.First();
 
-            return new KeyValuePair<string, M_QuestionCard>(curGameState.FocusedPlayerId, focusedQuestion);
+            return new Tuple<string, M_QuestionCard>(curGameState.FocusedPlayerId, focusedQuestion);
             
         }
         
