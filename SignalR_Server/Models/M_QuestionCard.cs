@@ -11,7 +11,7 @@ namespace SignalR_Server.Models
 		[BsonElement("QuestionDeck")]
 		public int QuestionDeck { get; set; }
 
-		[BsonElement("GameRound")]
+		[BsonElement("CurrentRoundNum")]
 		public int GameRound { get; set; }
 
 		[BsonElement("QuestionText")]

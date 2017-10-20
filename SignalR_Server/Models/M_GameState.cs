@@ -7,35 +7,64 @@ namespace SignalR_Server.Models
 {
     public class M_GameState
     {
+        #region Server only values
+
         [BsonId]
-        public string GameId { get; set; }
+        public string GameKey { get; set; }
 
 		[BsonElement("GameType")]
 		public int GameType { get; set; }
 
-        [BsonElement("GamePlayers")]
-        public IList<M_Player> GamePlayers { get; set; }
+        [BsonElement("QuestionList")]
+		public IList<M_QuestionCard> QuestionList { get; set; }
 
-		[BsonElement("GameQuestions")]
-		public IList<M_QuestionCard> GameQuestions { get; set; }
+        [BsonElement("NumStartRequests")]
+        public int NumStartRequests { get; set; }
 
-        [BsonElement("GameRound")]
-        public int GameRound { get; set; }
+        [BsonElement("QuestionCounter")]
+        public int QuestionCounter { get; set; }
 
+        [BsonElement("QuestionStatsList")]
+        public IList<M_QuestionStats> QuestionStatsList { get; set; }
+
+        #endregion
+
+        #region Client values
+
+        // STATE-INDEPENDENT DATA
+        [BsonElement("PlayerList")]
+        public IList<M_Player> PlayerList { get; set; }
+
+        // GAME CYCLE METRICS
+        [BsonElement("CurrentQuestionNum")]
+        public int CurrentQuestionNum { get; set; }
+
+        [BsonElement("MaxQuestionNum")]
+        public int MaxQuestionNum { get; set; }
+
+        [BsonElement("CurrentRoundNum")]
+        public int CurrentRoundNum { get; set; }
+
+        [BsonElement("MaxRoundNum")]
+        public int MaxRoundNum { get; set; }
+
+        [BsonElement("IsNewRound")]
+        public bool IsNewRound { get; set; }
+
+        // GAME STATE CONTEXT
         [BsonElement("FocusedPlayerId")]
         public string FocusedPlayerId { get; set; }
-      
-		[BsonElement("FocusedQuestionId")]
-		public int FocusedQuestionId { get; set; }
 
-        [BsonElement("GameAnswerStats")]
-        public IList<M_AnswerStats> GameAnswerStats { get; set; }
+        [BsonElement("FocusedQuestionId")]
+        public int FocusedQuestionId { get; set; }
 
-        [BsonElement("StartRequests")]
-        public int StartRequests { get; set; }
+        [BsonElement("FocusedQuestionStats")]
+        public M_ClientQuestionStats FocusedClientQuestionStats { get; set; }
 
-        [BsonElement("QuestionCount")]
-        public int QuestionCount { get; set; }
+        [BsonElement("ClientGameStats")]
+        public M_ClientGameStats ClientGameStats { get; set; }
+
+        #endregion
 
         #region Constructors
 
@@ -45,17 +74,19 @@ namespace SignalR_Server.Models
 
         public M_GameState(M_Player firstPlayer)
         {
-            GameId = TemporaryIdGenerator();
+            GameKey = TemporaryIdGenerator();
             GameType = 1;
-            GameRound = 1;
-            StartRequests = 0;
-            QuestionCount = 0;
+            CurrentRoundNum = 1;
+            MaxRoundNum = 3;
+            NumStartRequests = 0;
+            QuestionCounter = 0;
+            IsNewRound = false;
 
-            GamePlayers = new List<M_Player>();
-            GameQuestions = new List<M_QuestionCard>();
-            GameAnswerStats = new List<M_AnswerStats>();
+            PlayerList = new List<M_Player>();
+            QuestionList = new List<M_QuestionCard>();
+            QuestionStatsList = new List<M_QuestionStats>();
 
-            GamePlayers.Add(firstPlayer);
+            PlayerList.Add(firstPlayer);
             FocusedPlayerId = firstPlayer.PlayerId;
         }
 
@@ -76,14 +107,14 @@ namespace SignalR_Server.Models
                 
         public void GenerateNextQuestion()
         {
-            FocusedQuestionId = GameQuestions[QuestionCount].QuestionId;
-            QuestionCount++;
+            FocusedQuestionId = QuestionList[QuestionCounter].QuestionId;
+            QuestionCounter++;
 
             M_PlayerAnswer emptyFocusedPlayerAnswer = new M_PlayerAnswer(FocusedPlayerId);
 
-            M_AnswerStats newAnswerStats = new M_AnswerStats(FocusedQuestionId, GameRound, emptyFocusedPlayerAnswer, GameId);
+            M_QuestionStats newAnswerStats = new M_QuestionStats(FocusedQuestionId, CurrentRoundNum, emptyFocusedPlayerAnswer, GameKey);
 
-            GameAnswerStats.Add(newAnswerStats);
+            QuestionStatsList.Add(newAnswerStats);
         }
 
         #endregion

@@ -34,7 +34,7 @@ namespace SignalR_Server.Connectors
             {
                 using (connection = new SqlConnection(connectionString))
                 {
-                    string queryString = "SELECT QuestionID, QuestionDeck, GameRound, QuestionText, RedAnswer, YellowAnswer, GreenAnswer, BlueAnswer FROM QuestionCard";
+                    string queryString = "SELECT QuestionID, QuestionDeck, CurrentRoundNum, QuestionText, RedAnswer, YellowAnswer, GreenAnswer, BlueAnswer FROM QuestionCard";
                     SqlDataReader reader;
                     SqlCommand command = new SqlCommand(queryString, connection);
 
@@ -95,9 +95,9 @@ namespace SignalR_Server.Connectors
             {
                 using (connection = new SqlConnection(connectionString))
                 {
-                    string queryString = "SELECT QuestionID, QuestionDeck, GameRound, QuestionText, RedAnswer, YellowAnswer, GreenAnswer, BlueAnswer " +
+                    string queryString = "SELECT QuestionID, QuestionDeck, CurrentRoundNum, QuestionText, RedAnswer, YellowAnswer, GreenAnswer, BlueAnswer " +
                     "FROM QuestionCard " +
-                        "WHERE GameRound = " + round;
+                        "WHERE CurrentRoundNum = " + round;
 
                     SqlDataReader reader;
                     SqlCommand command = new SqlCommand(queryString, connection);
