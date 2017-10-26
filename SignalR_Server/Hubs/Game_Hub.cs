@@ -78,7 +78,7 @@ namespace SignalR_Server.Hubs
 
                 //If the the stateId is 2, broadcast the update.
                 //If not, then do nothing.
-                if (clientGameState.ClientGameStateId == 2)
+                if (clientGameState.ClientViewCode == 2)
                 {
                     UpdateGroupForNewQuestion(clientGameState);
                 }
@@ -111,7 +111,7 @@ namespace SignalR_Server.Hubs
                     foreach (M_Player player in clientGameState.PlayerList)
                     {
                         var result = from cGameState in clientGameStateList
-                                     where player.PlayerId.Equals(cGameState.ClientFocusedQuestionStats.PlayerId)
+                                     where player.PlayerId.Equals(cGameState.QuestionStats.PlayerId)
                                      select cGameState;
 
                         Clients.Client(player.SignalRConnectionId).ServerUpdate(result.First());
@@ -133,8 +133,10 @@ namespace SignalR_Server.Hubs
             {
                 if (gameController.IsGameOver(gameKey))
                 {
-                    Clients.Group(gameKey).DisplayGameStats(gameController.GetGameStats(gameKey));
-                    Groups.Remove(Context.ConnectionId, gameKey);
+                    //Ask the controller to begin a new round
+                    var clientGameState = gameController.EndGame(gameKey);
+
+                    UpdateGroupForNewQuestion(clientGameState);
                 }
                 else
                 {
@@ -153,7 +155,7 @@ namespace SignalR_Server.Hubs
         }
 
         //Client requests update to question db
-        public void RequestQuestionDbUpdate(DateTimeOffset clientLastUpdate)
+        public void RequestQuestionListUpdate(DateTimeOffset clientLastUpdate)
         {
             CheckAuthorization();
 
@@ -180,13 +182,13 @@ namespace SignalR_Server.Hubs
         }
         
         //Updates all clients in the group with the new client game state
-        private void UpdateGroup(M_ClientGameState clientGameState)
+        private void UpdateGroup(M_Client_GameState clientGameState)
         {
             Clients.Group(clientGameState.GameKey).ServerUpdate(clientGameState);
         }
 
-        //Updates the
-        private void UpdateGroupForNewQuestion(M_ClientGameState clientGameState)
+        //Updates the group for a new question and lets the focused player 
+        private void UpdateGroupForNewQuestion(M_Client_GameState clientGameState)
         {
             //Pull out the connection id for the focused player
             var result = from player in clientGameState.PlayerList

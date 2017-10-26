@@ -55,14 +55,14 @@ namespace SignalR_Server.Models
         [BsonElement("FocusedPlayerId")]
         public string FocusedPlayerId { get; set; }
 
-        [BsonElement("FocusedQuestionId")]
+        [BsonElement("CurrentQuestionId")]
         public int FocusedQuestionId { get; set; }
 
-        [BsonElement("FocusedQuestionStats")]
-        public M_ClientQuestionStats FocusedClientQuestionStats { get; set; }
+        [BsonElement("QuestionStats")]
+        public M_Client_QuestionStats QuestionStats { get; set; }
 
-        [BsonElement("ClientGameStats")]
-        public M_ClientGameStats ClientGameStats { get; set; }
+        [BsonElement("PlayerGameStatsList")]
+        public IList<M_Client_PlayerGameStats> PlayerGameStatsList { get; set; }
 
         #endregion
 
@@ -85,6 +85,7 @@ namespace SignalR_Server.Models
             PlayerList = new List<M_Player>();
             QuestionList = new List<M_QuestionCard>();
             QuestionStatsList = new List<M_QuestionStats>();
+            PlayerGameStatsList = new List<M_Client_PlayerGameStats>();
 
             PlayerList.Add(firstPlayer);
             FocusedPlayerId = firstPlayer.PlayerId;
@@ -105,15 +106,19 @@ namespace SignalR_Server.Models
 
         #region Helper Methods
                 
+        // Generates the next question for a hand
         public void GenerateNextQuestion()
         {
+            //Pull out the focused question id
             FocusedQuestionId = QuestionList[QuestionCounter].QuestionId;
-            QuestionCounter++;
 
+            //Create an empty answer for the focused player
             M_PlayerAnswer emptyFocusedPlayerAnswer = new M_PlayerAnswer(FocusedPlayerId);
 
+            //Create an empy answer stats for the question
             M_QuestionStats newAnswerStats = new M_QuestionStats(FocusedQuestionId, CurrentRoundNum, emptyFocusedPlayerAnswer, GameKey);
 
+            //Add the empty answer stats to the question stats list
             QuestionStatsList.Add(newAnswerStats);
         }
 

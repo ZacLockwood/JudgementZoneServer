@@ -5,14 +5,14 @@ using System.Collections.Generic;
 
 namespace SignalR_Server.Models
 {
-    public class M_ClientGameState
+    public class M_Client_GameState
     {
         [BsonId]
         public string GameKey { get; set; }
 
         // CLIENT STATE IDENTIFIER
-        [BsonElement("ClientGameStateId")]
-        public int ClientGameStateId { get; set; }
+        [BsonElement("ClientViewCode")]
+        public int ClientViewCode { get; set; }
 
         // STATE-INDEPENDENT DATA
         [BsonElement("PlayerList")]
@@ -41,23 +41,23 @@ namespace SignalR_Server.Models
         [BsonElement("FocusedPlayerId")]
         public string FocusedPlayerId { get; set; }
 
-        [BsonElement("FocusedQuestionId")]
-        public int FocusedQuestionId { get; set; }
+        [BsonElement("CurrentQuestionId")]
+        public int CurrentQuestionId { get; set; }
 
-        [BsonElement("ClientFocusedQuestionStats")]
-        public M_ClientQuestionStats ClientFocusedQuestionStats { get; set; }
+        [BsonElement("QuestionStats")]
+        public M_Client_QuestionStats QuestionStats { get; set; }
 
-        [BsonElement("ClientGameStats")]
-        public M_ClientGameStats ClientGameStats { get; set; }
+        [BsonElement("PlayerGameStatsList")]
+        public IList<M_Client_PlayerGameStats> PlayerGameStatsList { get; set; }
 
         #region Constructor
 
-        public M_ClientGameState()
+        public M_Client_GameState()
         {
             GameKey = TemporaryKeyGenerator();
         }
 
-        public M_ClientGameState(M_Player firstPlayer)
+        public M_Client_GameState(M_Player firstPlayer)
         {
             GameKey = TemporaryKeyGenerator();
 

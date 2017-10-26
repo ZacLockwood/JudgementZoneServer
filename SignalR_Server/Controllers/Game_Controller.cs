@@ -27,17 +27,15 @@ namespace SignalR_Server
         #region Game preparation methods
 
         // Creates a new game with a first player
-        public M_ClientGameState CreateNewGameState(M_Player myPlayer)
+        public M_Client_GameState CreateNewGameState(M_Player myPlayer)
         {
             var collection = gameDbConnector.GetCollection();
             M_GameState newGameState = new M_GameState(myPlayer);
 
             try
             {
+                // Insert game state into db and return client game state
                 collection.InsertOne(newGameState);
-
-                //NEW SYSTEM
-                //This needs to return the clientGameState
                 return BuildClientGameState(newGameState, 1);
             }
             catch (Exception e)
@@ -47,16 +45,15 @@ namespace SignalR_Server
         }
 
         // Adds a single player to the given game
-        public M_ClientGameState AddPlayerToGame(M_Player myPlayer, string gameKey)
+        public M_Client_GameState AddPlayerToGame(M_Player myPlayer, string gameKey)
         {
             try
             {
                 M_GameState curGameState = GetGame(gameKey);
                 curGameState.PlayerList.Add(myPlayer);
-                
-                UpdateGameState(curGameState);
 
-                //NEW SYSTEM
+                // Update db and return client game state
+                UpdateGameState(curGameState);
                 return BuildClientGameState(curGameState, 1);
             }
             catch (Exception e)
@@ -80,7 +77,7 @@ namespace SignalR_Server
         }
 
         // Adds the calling player saying they're ready to begin
-        public M_ClientGameState PlayerIsReadyToStart(string gameKey)
+        public M_Client_GameState PlayerIsReadyToStart(string gameKey)
         {            
             M_GameState curGameState = GetGame(gameKey);
             curGameState.NumStartRequests++;
@@ -91,13 +88,14 @@ namespace SignalR_Server
             }
             else
             {
+                // Update db and return client game state
                 UpdateGameState(curGameState);
                 return BuildClientGameState(curGameState, 1);
             }
         }
 
         // Adds questions to the game state and updates the DB
-        private M_ClientGameState PrepGameForStart(M_GameState curGameState)
+        private M_Client_GameState PrepGameForStart(M_GameState curGameState)
         {
             QuestionDB_Connector dbConnector = new QuestionDB_Connector();
             IList<M_QuestionCard> list = null;
@@ -121,8 +119,9 @@ namespace SignalR_Server
                 curGameState.GenerateNextQuestion();
                 curGameState.CurrentQuestionNum = 1;
                 curGameState.MaxQuestionNum = curGameState.PlayerList.Count;
-                UpdateGameState(curGameState);
 
+                // Update db and return client game state
+                UpdateGameState(curGameState);
                 return BuildClientGameState(curGameState, 2);
             }
         }
@@ -132,7 +131,7 @@ namespace SignalR_Server
         #region Gameplay methods
 
         // Adds the calling client's answer to the game stats
-        public M_ClientGameState AddAnswer(string playerId, int playerAnswer, string gameKey)
+        public M_Client_GameState AddAnswer(string playerId, int playerAnswer, string gameKey)
         {
             M_GameState curGameState = GetGame(gameKey);
             M_QuestionStats curAnswerStats = GetCurrentQuestionStats(curGameState);
@@ -155,14 +154,14 @@ namespace SignalR_Server
 
         // THE LOGIC IN THIS METHOD NEEDS REWORKING
         // Calculates the current ClientFocusedQuestionStats and returns the ClientGameState
-        public List<M_ClientGameState> CalculateFocusedClientQuestionStats(string gameKey)
+        public List<M_Client_GameState> CalculateFocusedClientQuestionStats(string gameKey)
         {
             //Get the game and the current answer stats
             var curGameState = GetGame(gameKey);
             var curAnswerStats = GetCurrentQuestionStats(curGameState);
 
-            var clientGameStateList = new List<M_ClientGameState>();
-            var clientGameState = BuildClientGameState(curGameState, 3);
+            var clientGameStateList = new List<M_Client_GameState>();
+            //var clientGameState = BuildClientGameState(curGameState, 3);
 
             int numRed = 0;
             int numYellow = 0;
@@ -189,7 +188,7 @@ namespace SignalR_Server
             //with their respective focusedPlayerQuestionStats
             foreach (M_PlayerAnswer pAnswer in curAnswerStats.OtherPlayerAnswers)
             {
-                var clientQuestionStats = new M_ClientQuestionStats();
+                var clientQuestionStats = new M_Client_QuestionStats();
 
                 //Assign IDs
                 clientQuestionStats.GameKey = gameKey;
@@ -208,19 +207,19 @@ namespace SignalR_Server
 
                 //Assign other values
                 clientQuestionStats.CorrectAnswerId = curAnswerStats.FocusedPlayerAnswer.PlayerAnswer;
-                clientQuestionStats.NumRedGuesses = numRed;
-                clientQuestionStats.NumYellowGuesses = numYellow;
-                clientQuestionStats.NumGreenGuesses = numGreen;
-                clientQuestionStats.NumBlueGuesses = numBlue;
+                clientQuestionStats.RedGuesses = numRed;
+                clientQuestionStats.YellowGuesses = numYellow;
+                clientQuestionStats.GreenGuesses = numGreen;
+                clientQuestionStats.BlueGuesses = numBlue;
 
-                //Assign the questions stats to the game state and add the game state to the list
-                var copyGameState = clientGameState;
-                copyGameState.ClientFocusedQuestionStats = clientQuestionStats;
-                clientGameStateList.Add(copyGameState);
+                //Assign the questions stats to a new game state and add the game state to the list
+                var clientGameState = BuildClientGameState(curGameState, 3);
+                clientGameState.QuestionStats = clientQuestionStats;
+                clientGameStateList.Add(clientGameState);
             }
 
             //Make one more client game state for the focused player
-            var focusedPlayerQuestionStats = new M_ClientQuestionStats();
+            var focusedPlayerQuestionStats = new M_Client_QuestionStats();
 
             //Assign IDs
             focusedPlayerQuestionStats.GameKey = gameKey;
@@ -232,37 +231,39 @@ namespace SignalR_Server
 
             //Assign other values
             focusedPlayerQuestionStats.CorrectAnswerId = curAnswerStats.FocusedPlayerAnswer.PlayerAnswer;
-            focusedPlayerQuestionStats.NumRedGuesses = numRed;
-            focusedPlayerQuestionStats.NumYellowGuesses = numYellow;
-            focusedPlayerQuestionStats.NumGreenGuesses = numGreen;
-            focusedPlayerQuestionStats.NumBlueGuesses = numBlue;
+            focusedPlayerQuestionStats.RedGuesses = numRed;
+            focusedPlayerQuestionStats.YellowGuesses = numYellow;
+            focusedPlayerQuestionStats.GreenGuesses = numGreen;
+            focusedPlayerQuestionStats.BlueGuesses = numBlue;
 
             //Assign the questions stats to the game state and add the game state to the list
-            var focusedPlayerCopyGameState = clientGameState;
-            focusedPlayerCopyGameState.ClientFocusedQuestionStats = focusedPlayerQuestionStats;
-            clientGameStateList.Add(focusedPlayerCopyGameState);
+            var focusedPlayerGameState = BuildClientGameState(curGameState, 3);
+            focusedPlayerGameState.QuestionStats = focusedPlayerQuestionStats;
+            clientGameStateList.Add(focusedPlayerGameState);
 
             return clientGameStateList;
         }
 
         // Begin a new round of questions
-        public M_ClientGameState BeginNewRound(string gameKey)
+        public M_Client_GameState BeginNewRound(string gameKey)
         {
             M_GameState curGameState = GetGame(gameKey);
 
+            // Update all the values for a new round
+            curGameState.FocusedPlayerId = curGameState.PlayerList.First().PlayerId;
             curGameState.CurrentRoundNum++;
             curGameState.CurrentQuestionNum = 1;
-            curGameState.FocusedPlayerId = curGameState.PlayerList.First().PlayerId;
+            curGameState.QuestionCounter++;
             curGameState.GenerateNextQuestion();
             curGameState.IsNewRound = true;
 
+            // Update db and return client game state
             UpdateGameState(curGameState);
-
             return BuildClientGameState(curGameState, 2);
         }
 
         // Begin a new question with a new focused player
-        public M_ClientGameState BeginNewQuestion(string gameKey)
+        public M_Client_GameState BeginNewQuestion(string gameKey)
         {
             M_GameState curGameState = GetGame(gameKey);
 
@@ -272,16 +273,33 @@ namespace SignalR_Server
                          select player;
 
             // Finds the index of the focused player in the PlayerList list
-            var focusedPlayer = result.First();
-            var index = curGameState.PlayerList.IndexOf(focusedPlayer);
+            var index = curGameState.PlayerList.IndexOf(result.First());
 
             // Updates the focused player id to the new focused player
             curGameState.FocusedPlayerId = curGameState.PlayerList[index + 1].PlayerId;
+
+            // Update all the values for the new question
+            curGameState.QuestionCounter++;
+            curGameState.CurrentQuestionNum++;
             curGameState.GenerateNextQuestion();
+            
 
+            // Update db and return client game state
             UpdateGameState(curGameState);
-
             return BuildClientGameState(curGameState, 2);
+        }
+
+        // End the game by getting the game stats and returning it to the players
+        public M_Client_GameState EndGame(string gameKey)
+        {
+            var curGameState = GetGame(gameKey);
+
+            // Calculate and store the game stats for each player in a list
+            curGameState.PlayerGameStatsList = GetGameStats(curGameState);
+
+            // Update db and return client game state
+            UpdateGameState(curGameState);
+            return (BuildClientGameState(curGameState, 4));
         }
 
         #endregion
@@ -294,10 +312,86 @@ namespace SignalR_Server
             return GetCurrentQuestionStats(GetGame(gameKey));
         }
         
-        // Returns the game stats
-        public IList<M_QuestionStats> GetGameStats(string gameKey)
+        // Calculates and returns the game stats for each player in a list
+        public List<M_Client_PlayerGameStats> GetGameStats(M_GameState curGameState)
         {
-            return GetGame(gameKey).QuestionStatsList;
+            // Initialize the list that will hold all the player game stats
+            var playerGameStatsList = new List<M_Client_PlayerGameStats>();
+
+            // Iterate through all the players in the game state to find the 
+            // game stats for each player
+            foreach (M_Player player in curGameState.PlayerList)
+            {
+                // Pull out the list of stats for the current player
+                var result = from qStats in curGameState.QuestionStatsList
+                             where qStats.FocusedPlayerAnswer.PlayerId == player.PlayerId
+                             select qStats;
+                
+                // Convert the result to an array
+                var resultArray = result.ToArray();
+
+                // Initialize all counter variables
+                int playerSelectionsRed = 0;
+                int playerSelectionsYellow = 0;
+                int playerSelectionsGreen = 0;
+                int playerSelectionsBlue = 0;
+
+                int otherSelectionsRed = 0;
+                int otherSelectionsYellow = 0;
+                int otherSelectionsGreen = 0;
+                int otherSelectionsBlue = 0;
+
+                // Iterate across all the question stats in the result array
+                // to tally up all the selections
+                foreach (M_QuestionStats qStats in resultArray)
+                {
+                    //Tally up the selections by the focused player
+                    switch (qStats.FocusedPlayerAnswer.PlayerAnswer)
+                    {
+                        case 1:
+                            playerSelectionsRed++;
+                            break;
+                        case 2:
+                            playerSelectionsYellow++;
+                            break;
+                        case 3:
+                            playerSelectionsGreen++;
+                            break;
+                        case 4:
+                            playerSelectionsBlue++;
+                            break;
+                    }
+
+                    //Tally up the guesses by the other players
+                    foreach (M_PlayerAnswer answer in qStats.OtherPlayerAnswers)
+                    {
+                        switch (answer.PlayerAnswer)
+                        {
+                            case 1:
+                                otherSelectionsRed++;
+                                break;
+                            case 2:
+                                otherSelectionsYellow++;
+                                break;
+                            case 3:
+                                otherSelectionsGreen++;
+                                break;
+                            case 4:
+                                otherSelectionsBlue++;
+                                break;
+                        }
+                    }
+
+                    //Create new player game stats and add it to the list
+                    var newPlayerGameStats = new M_Client_PlayerGameStats(
+                        playerSelectionsRed, playerSelectionsYellow, playerSelectionsGreen, playerSelectionsBlue,
+                        otherSelectionsRed, otherSelectionsYellow, otherSelectionsGreen, otherSelectionsBlue);
+
+                    playerGameStatsList.Add(newPlayerGameStats);
+                }
+            }
+
+            return playerGameStatsList;
         }
 
         // Returns the current focused player ID and question card
@@ -316,7 +410,7 @@ namespace SignalR_Server
         }
 
         // Returns the client's game state object
-        public M_ClientGameState GetClientGameState(string gameKey, int clientGameStateId)
+        public M_Client_GameState GetClientGameState(string gameKey, int clientGameStateId)
         {
             return BuildClientGameState(GetGame(gameKey), clientGameStateId);
         }
@@ -410,13 +504,13 @@ namespace SignalR_Server
         }
 
         // Builds the client's game state from the server's game state
-        private M_ClientGameState BuildClientGameState(M_GameState curGameState, int clientGameStateId)
+        private M_Client_GameState BuildClientGameState(M_GameState curGameState, int clientGameStateId)
         {
-            M_ClientGameState clientGameState = new M_ClientGameState();
+            M_Client_GameState clientGameState = new M_Client_GameState();
 
             clientGameState.GameKey = curGameState.GameKey;
             // CLIENT STATE IDENTIFIER
-            clientGameState.ClientGameStateId = clientGameStateId;
+            clientGameState.ClientViewCode = clientGameStateId;
             // STATE-INDEPENDENT DATA
             clientGameState.PlayerList = curGameState.PlayerList;
             // GAME CYCLE METRICS
@@ -428,9 +522,9 @@ namespace SignalR_Server
             clientGameState.IsNewRound = curGameState.IsNewRound;
             // GAME STATE CONTEXT
             clientGameState.FocusedPlayerId = curGameState.FocusedPlayerId;
-            clientGameState.FocusedQuestionId = curGameState.FocusedQuestionId;
-            clientGameState.ClientFocusedQuestionStats = curGameState.FocusedClientQuestionStats;
-            clientGameState.ClientGameStats = curGameState.ClientGameStats;
+            clientGameState.CurrentQuestionId = curGameState.FocusedQuestionId;
+            clientGameState.QuestionStats = curGameState.QuestionStats;
+            clientGameState.PlayerGameStatsList = curGameState.PlayerGameStatsList;
 
             return clientGameState;
         }

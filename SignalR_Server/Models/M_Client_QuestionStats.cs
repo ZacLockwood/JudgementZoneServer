@@ -3,7 +3,7 @@ using MongoDB.Bson;
 
 namespace SignalR_Server.Models
 {
-    public class M_ClientQuestionStats
+    public class M_Client_QuestionStats
     {
         // KEY
         [BsonElement("GameKey")]
@@ -13,7 +13,7 @@ namespace SignalR_Server.Models
         public string PlayerId { get; set; }
 
         // CONTEXT
-        [BsonElement("QuestionId")]
+        [BsonElement("CurrentQuestionId")]
         public int QuestionId { get; set; }
 
         [BsonElement("IsPlayerCorrect")]
@@ -22,19 +22,19 @@ namespace SignalR_Server.Models
         [BsonElement("CorrectAnswerId")]
         public int CorrectAnswerId { get; set; }
 
-        [BsonElement("NumRedGuesses")] //red is 0
-        public int NumRedGuesses { get; set; }
+        [BsonElement("RedGuesses")] //red is 1
+        public int RedGuesses { get; set; }
 
-        [BsonElement("NumYellowGuesses")] //yellow is 1
-        public int NumYellowGuesses { get; set; }
+        [BsonElement("YellowGuesses")] //yellow is 2
+        public int YellowGuesses { get; set; }
 
-        [BsonElement("NumGreenGuesses")] //green is 2
-        public int NumGreenGuesses { get; set; }
+        [BsonElement("GreenGuesses")] //green is 3
+        public int GreenGuesses { get; set; }
 
-        [BsonElement("NumBlueGuesses")] //blue is 3
-        public int NumBlueGuesses { get; set; }
+        [BsonElement("BlueGuesses")] //blue is 4
+        public int BlueGuesses { get; set; }
 
-        public M_ClientQuestionStats()
+        public M_Client_QuestionStats()
         {
         }
     }

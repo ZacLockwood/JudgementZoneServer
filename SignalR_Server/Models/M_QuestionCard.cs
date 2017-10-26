@@ -6,7 +6,7 @@ namespace SignalR_Server.Models
 {
     public class M_QuestionCard
     {
-		[BsonElement("QuestionId")]
+		[BsonElement("CurrentQuestionId")]
 		public int QuestionId { get; set; }
 
 		[BsonElement("QuestionDeck")]
