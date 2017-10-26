@@ -23,5 +23,12 @@ namespace SignalR_Server.Models
         {
             PlayerId = pId;
         }
+
+        public M_PlayerAnswer(string pId, int pAnswer, string gId)
+        {
+            PlayerId = pId;
+            PlayerAnswer = pAnswer;
+            GameId = gId;
+        }
     }
 }

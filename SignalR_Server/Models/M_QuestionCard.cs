@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
+using System;
 
 namespace SignalR_Server.Models
 {
@@ -29,7 +30,13 @@ namespace SignalR_Server.Models
 		[BsonElement("BlueAnswer")]
 		public string BlueAnswer { get; set; }
 
-		public M_QuestionCard()
+        [BsonElement("DateCreated")]
+        public DateTimeOffset DateCreated { get; set; }        
+
+        [BsonElement("DateUpdated")]
+        public DateTimeOffset DateModified { get; set; }
+
+        public M_QuestionCard()
         {
         }
     }

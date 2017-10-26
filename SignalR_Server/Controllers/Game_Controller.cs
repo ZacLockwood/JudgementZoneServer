@@ -80,7 +80,7 @@ namespace SignalR_Server
         }
 
         // Adds the calling player saying they're ready to begin
-        public M_ClientGameState PlayerIsReadyToStart(M_Player myPlayer, string gameKey)
+        public M_ClientGameState PlayerIsReadyToStart(string gameKey)
         {            
             M_GameState curGameState = GetGame(gameKey);
             curGameState.NumStartRequests++;
@@ -119,6 +119,8 @@ namespace SignalR_Server
             {
                 curGameState.QuestionList = list;
                 curGameState.GenerateNextQuestion();
+                curGameState.CurrentQuestionNum = 1;
+                curGameState.MaxQuestionNum = curGameState.PlayerList.Count;
                 UpdateGameState(curGameState);
 
                 return BuildClientGameState(curGameState, 2);
@@ -130,7 +132,7 @@ namespace SignalR_Server
         #region Gameplay methods
 
         // Adds the calling client's answer to the game stats
-        public M_ClientGameState AddAnswer(M_PlayerAnswer newAnswer, string gameKey)
+        public M_ClientGameState AddAnswer(string playerId, int playerAnswer, string gameKey)
         {
             M_GameState curGameState = GetGame(gameKey);
             M_QuestionStats curAnswerStats = GetCurrentQuestionStats(curGameState);
@@ -138,11 +140,11 @@ namespace SignalR_Server
 
             if (curAnswerStats.FocusedPlayerAnswer.PlayerAnswer == 0)
             {
-                curAnswerStats.FocusedPlayerAnswer = newAnswer;
+                curAnswerStats.FocusedPlayerAnswer = new M_PlayerAnswer(playerId, playerAnswer, gameKey);
             }
             else
             {
-                curAnswerStats.OtherPlayerAnswers.Add(newAnswer);
+                curAnswerStats.OtherPlayerAnswers.Add(new M_PlayerAnswer(playerId, playerAnswer, gameKey));
             }
 
             curGameState.QuestionStatsList[index] = curAnswerStats;
@@ -151,6 +153,7 @@ namespace SignalR_Server
             return BuildClientGameState(curGameState, 2);
         }        
 
+        // THE LOGIC IN THIS METHOD NEEDS REWORKING
         // Calculates the current ClientFocusedQuestionStats and returns the ClientGameState
         public List<M_ClientGameState> CalculateFocusedClientQuestionStats(string gameKey)
         {
@@ -171,13 +174,13 @@ namespace SignalR_Server
             {
                 switch (pAnswer.PlayerAnswer)
                 {
-                    case 0: numRed++;
+                    case 1: numRed++;
                         break;
-                    case 1: numYellow++;
+                    case 2: numYellow++;
                         break;
-                    case 2: numGreen++;
+                    case 3: numGreen++;
                         break;
-                    case 3: numBlue++;
+                    case 4: numBlue++;
                         break;
                 }
             }
@@ -211,8 +214,9 @@ namespace SignalR_Server
                 clientQuestionStats.NumBlueGuesses = numBlue;
 
                 //Assign the questions stats to the game state and add the game state to the list
-                clientGameState.ClientFocusedQuestionStats = clientQuestionStats;
-                clientGameStateList.Add(clientGameState);
+                var copyGameState = clientGameState;
+                copyGameState.ClientFocusedQuestionStats = clientQuestionStats;
+                clientGameStateList.Add(copyGameState);
             }
 
             //Make one more client game state for the focused player
@@ -234,8 +238,9 @@ namespace SignalR_Server
             focusedPlayerQuestionStats.NumBlueGuesses = numBlue;
 
             //Assign the questions stats to the game state and add the game state to the list
-            clientGameState.ClientFocusedQuestionStats = focusedPlayerQuestionStats;
-            clientGameStateList.Add(clientGameState);
+            var focusedPlayerCopyGameState = clientGameState;
+            focusedPlayerCopyGameState.ClientFocusedQuestionStats = focusedPlayerQuestionStats;
+            clientGameStateList.Add(focusedPlayerCopyGameState);
 
             return clientGameStateList;
         }
@@ -428,6 +433,14 @@ namespace SignalR_Server
             clientGameState.ClientGameStats = curGameState.ClientGameStats;
 
             return clientGameState;
+        }
+        
+        // Gets the updated question cards from the question db for the client
+        public List<M_QuestionCard> GetModifiedQuestionListFromDb(DateTimeOffset clientLastUpdate)
+        {
+            var dbConnector = new QuestionDB_Connector();
+
+            return dbConnector.GetModifiedQuestionList(clientLastUpdate);
         }
 
         #endregion
