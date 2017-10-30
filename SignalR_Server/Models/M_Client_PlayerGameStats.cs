@@ -42,9 +42,13 @@ namespace SignalR_Server.Models
         {
         }
 
-        public M_Client_PlayerGameStats(int pSRed, int pSYellow, int pSGreen, int pSBlue,
+        public M_Client_PlayerGameStats(string pId, string gKey,
+            int pSRed, int pSYellow, int pSGreen, int pSBlue,
             int oSRed, int oSYellow, int oSGreen, int oSBlue)
         {
+            PlayerId = pId;
+            GameKey = gKey;
+
             PlayerSelectionsRed = pSRed;
             PlayerSelectionsYellow = pSYellow;
             PlayerSelectionsGreen = pSGreen;

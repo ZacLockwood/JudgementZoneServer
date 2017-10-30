@@ -381,14 +381,14 @@ namespace SignalR_Server
                                 break;
                         }
                     }
-
-                    //Create new player game stats and add it to the list
-                    var newPlayerGameStats = new M_Client_PlayerGameStats(
-                        playerSelectionsRed, playerSelectionsYellow, playerSelectionsGreen, playerSelectionsBlue,
-                        otherSelectionsRed, otherSelectionsYellow, otherSelectionsGreen, otherSelectionsBlue);
-
-                    playerGameStatsList.Add(newPlayerGameStats);
                 }
+
+                //Create new player game stats and add it to the list
+                var newPlayerGameStats = new M_Client_PlayerGameStats(player.PlayerId, curGameState.GameKey,
+                    playerSelectionsRed, playerSelectionsYellow, playerSelectionsGreen, playerSelectionsBlue,
+                    otherSelectionsRed, otherSelectionsYellow, otherSelectionsGreen, otherSelectionsBlue);
+
+                playerGameStatsList.Add(newPlayerGameStats);
             }
 
             return playerGameStatsList;
