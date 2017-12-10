@@ -17,7 +17,7 @@ namespace SignalR_Server
 
         #region Constructors
 
-        // Default constructor    
+        // Default constructor
         public Game_Controller()
         {
         }
@@ -77,13 +77,35 @@ namespace SignalR_Server
         }
 
         // Adds the calling player saying they're ready to begin
-        public M_Client_GameState PlayerIsReadyToStart(string gameKey)
-        {            
+        public M_Client_GameState PlayerIsReadyToStart(M_Player myPlayer, string gameKey)
+        {
             M_GameState curGameState = GetGame(gameKey);
-            curGameState.NumStartRequests++;
 
-            if (curGameState.NumStartRequests == curGameState.PlayerList.Count)
+            // Label the player as ready to start
+            myPlayer.IsReadyToStart = true;
+
+            //curGameState.NumStartRequests++;
+
+            // Find and replace the same player in the player list
+            var result = from player in curGameState.PlayerList
+                         where player.PlayerId == myPlayer.PlayerId
+                         select player;
+            var index = curGameState.PlayerList.IndexOf(result.First());
+            curGameState.PlayerList[index] = myPlayer;
+
+            int numReady = 0;
+            foreach (M_Player player in curGameState.PlayerList)
             {
+                if (player.IsReadyToStart)
+                {
+                    numReady++;
+                }
+            }
+
+            // If all players are ready to start, prep the game for start
+            if (numReady == curGameState.PlayerList.Count)//curGameState.NumStartRequests == curGameState.PlayerList.Count)
+            {
+                curGameState.IsNewRound = true;
                 return PrepGameForStart(curGameState);
             }
             else
@@ -150,7 +172,7 @@ namespace SignalR_Server
             UpdateGameState(curGameState);
 
             return BuildClientGameState(curGameState, 2);
-        }        
+        }
 
         // THE LOGIC IN THIS METHOD NEEDS REWORKING
         // Calculates the current ClientFocusedQuestionStats and returns the ClientGameState
@@ -194,7 +216,7 @@ namespace SignalR_Server
                 clientQuestionStats.GameKey = gameKey;
                 clientQuestionStats.QuestionId = curGameState.FocusedQuestionId;
                 clientQuestionStats.PlayerId = pAnswer.PlayerId;
-                
+
                 //Check to see if the player guessed correctly
                 if (pAnswer.PlayerAnswer == curAnswerStats.FocusedPlayerAnswer.PlayerAnswer)
                 {
@@ -282,7 +304,7 @@ namespace SignalR_Server
             curGameState.QuestionCounter++;
             curGameState.CurrentQuestionNum++;
             curGameState.GenerateNextQuestion();
-            
+
 
             // Update db and return client game state
             UpdateGameState(curGameState);
@@ -311,14 +333,14 @@ namespace SignalR_Server
         {
             return GetCurrentQuestionStats(GetGame(gameKey));
         }
-        
+
         // Calculates and returns the game stats for each player in a list
         public List<M_Client_PlayerGameStats> GetGameStats(M_GameState curGameState)
         {
             // Initialize the list that will hold all the player game stats
             var playerGameStatsList = new List<M_Client_PlayerGameStats>();
 
-            // Iterate through all the players in the game state to find the 
+            // Iterate through all the players in the game state to find the
             // game stats for each player
             foreach (M_Player player in curGameState.PlayerList)
             {
@@ -326,7 +348,7 @@ namespace SignalR_Server
                 var result = from qStats in curGameState.QuestionStatsList
                              where qStats.FocusedPlayerAnswer.PlayerId == player.PlayerId
                              select qStats;
-                
+
                 // Convert the result to an array
                 var resultArray = result.ToArray();
 
@@ -406,7 +428,7 @@ namespace SignalR_Server
             M_QuestionCard focusedQuestion = result.First();
 
             return new Tuple<string, M_QuestionCard>(curGameState.FocusedPlayerId, focusedQuestion);
-            
+
         }
 
         // Returns the client's game state object
@@ -414,7 +436,7 @@ namespace SignalR_Server
         {
             return BuildClientGameState(GetGame(gameKey), clientGameStateId);
         }
-        
+
         #endregion
 
         #region Check game state methods
@@ -472,7 +494,7 @@ namespace SignalR_Server
         private M_QuestionStats GetCurrentQuestionStats(M_GameState curGameState)
         {
             var result = from aStats in curGameState.QuestionStatsList
-                         where aStats.GameRound == curGameState.CurrentRoundNum 
+                         where aStats.GameRound == curGameState.CurrentRoundNum
                          && aStats.FocusedPlayerAnswer.PlayerId.Equals(curGameState.FocusedPlayerId)
                          select aStats;
 
@@ -528,7 +550,7 @@ namespace SignalR_Server
 
             return clientGameState;
         }
-        
+
         // Gets the updated question cards from the question db for the client
         public List<M_QuestionCard> GetModifiedQuestionListFromDb(DateTimeOffset clientLastUpdate)
         {

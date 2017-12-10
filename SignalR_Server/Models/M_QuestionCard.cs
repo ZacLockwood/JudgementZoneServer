@@ -31,7 +31,7 @@ namespace SignalR_Server.Models
 		public string BlueAnswer { get; set; }
 
         [BsonElement("DateCreated")]
-        public DateTimeOffset DateCreated { get; set; }        
+        public DateTimeOffset DateCreated { get; set; }
 
         [BsonElement("DateUpdated")]
         public DateTimeOffset DateModified { get; set; }

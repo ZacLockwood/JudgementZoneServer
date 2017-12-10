@@ -18,7 +18,7 @@ namespace SignalR_Server.Connectors
         private string host = ConnectionConstants.GAMESTATEDB_HOST;
         private string password = ConnectionConstants.GAMESTATEDB_PASSWORD;
 
-        // The database and collection will be automatically created 
+        // The database and collection will be automatically created
         // if they don't already exist.
         private string dbName = ConnectionConstants.GAMESTATEDB_DBNAME;
         private string collectionName = ConnectionConstants.GAMESTATEDB_COLLECTIONNAME;

@@ -105,7 +105,7 @@ namespace SignalR_Server.Models
         #endregion
 
         #region Helper Methods
-                
+
         // Generates the next question for a hand
         public void GenerateNextQuestion()
         {
