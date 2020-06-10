@@ -128,9 +128,12 @@
     <Compile Include="Connectors\QuestionDB_Connector.cs" />
     <Compile Include="Hubs\Game_Hub.cs" />
     <Compile Include="Controllers\Game_Controller.cs" />
+    <Compile Include="Models\M_Client_GameState.cs" />
+    <Compile Include="Models\M_Client_PlayerGameStats.cs" />
+    <Compile Include="Models\M_Client_QuestionStats.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Startup.cs" />
-    <Compile Include="Models\M_AnswerStats.cs" />
+    <Compile Include="Models\M_QuestionStats.cs" />
     <Compile Include="Models\M_GameState.cs" />
     <Compile Include="Models\M_Player.cs" />
     <Compile Include="Models\M_PlayerAnswer.cs" />

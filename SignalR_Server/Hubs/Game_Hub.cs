@@ -2,6 +2,7 @@
 using Microsoft.AspNet.SignalR;
 using SignalR_Server.Models;
 using SignalR_Server.Connectors;
+using System.Linq;
 
 namespace SignalR_Server.Hubs
 {
@@ -16,44 +17,48 @@ namespace SignalR_Server.Hubs
         #region Client Requests
 
         //Client requests new game
-        public void RequestNewGame(M_Player myPlayer)
+        public async void RequestNewGame(M_Player myPlayer)
         {
             CheckAuthorization();
 
-            var gameState = new M_GameState();
+            //Pull out the connectionId for future reference
+            myPlayer.SignalRConnectionId = Context.ConnectionId;
 
-            try
-            {
-                gameState = gameController.CreateNewGameState(myPlayer);
-            }
-            catch (Exception e)
-            {
-                Clients.Caller.DisplayError("Oops! Something went wrong :( Try that again!", e);
-            }            
+            //Create the new game
+            var clientGameState = gameController.CreateNewGameState(myPlayer);
 
-            string gameKey = gameState.GameId;
-            Groups.Add(Context.ConnectionId, gameKey);
-            UpdatePlayerListScreen(gameKey);
+            //Add the player to a group with name of the GameKey
+            await Groups.Add(Context.ConnectionId, clientGameState.GameKey);
+
+            //Update the group
+            UpdateGroup(clientGameState);
         }
 
         //Client requests to join game
-        public void RequestJoinGame(M_Player myPlayer, string gameKey)
+        public async void RequestJoinGame(M_Player myPlayer, string gameKey)
         {
             CheckAuthorization();
 
-            if (gameController.GetGame(gameKey).GameQuestions.Count == 0)
+            if (gameController.GetGame(gameKey).QuestionList.Count == 0)
             {
                 try
                 {
-                    gameController.AddPlayerToGame(myPlayer, gameKey);
+                    //Pull out the connectionId for future reference
+                    myPlayer.SignalRConnectionId = Context.ConnectionId;
+
+                    //Add the player to the game state
+                    var clientGameState = gameController.AddPlayerToGame(myPlayer, gameKey);
+
+                    //Add the player to a group with name of the GameKey
+                    await Groups.Add(Context.ConnectionId, clientGameState.GameKey);
+
+                    //Update the group
+                    UpdateGroup(clientGameState);
                 }
                 catch (Exception e)
                 {
                     Clients.Caller.DisplayError("Oops! Something went wrong :( Try that again!", e);
                 }
-
-                Groups.Add(Context.ConnectionId, gameKey);
-                UpdatePlayerListScreen(gameKey);
             }
             else
             {
@@ -68,12 +73,21 @@ namespace SignalR_Server.Hubs
 
             try
             {
-                bool beginGame = gameController.PlayerIsReadyToStart(myPlayer, gameKey);
+                //Pull out the connectionId for future reference
+                myPlayer.SignalRConnectionId = Context.ConnectionId;
 
-                if (beginGame)
+                //Set the current player ready to start
+                var clientGameState = gameController.PlayerIsReadyToStart(myPlayer, gameKey);
+
+                //If the the stateId is 2, broadcast the update.
+                //If not, then do nothing.
+                if (clientGameState.ClientViewCode == 2)
                 {
-                    var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);                    
-                    Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Item1, PlayerAndQuestion.Item2);
+                    UpdateGroupForNewQuestion(clientGameState);
+                }
+                else
+                {
+                    UpdateGroup(clientGameState);
                 }
             }
             catch (Exception e)
@@ -83,26 +97,37 @@ namespace SignalR_Server.Hubs
         }
 
         //Client sends answer
-        public void SubmitAnswer(M_PlayerAnswer myAnswer, string gameKey)
+        public void SubmitAnswer(string playerId, int myAnswer, string gameKey)
         {
             CheckAuthorization();
 
-            try
-            {
-                gameController.AddAnswer(myAnswer, gameKey);
-            }
-            catch (Exception e)
-            {
-                Clients.Caller.DisplayError("Oops! Something went wrong :( Try that again!", e);
-            }
+            var clientGameState = gameController.AddAnswer(playerId, myAnswer, gameKey);
 
-            if (gameController.IsFirstAnswer(gameKey))
+            if (playerId.Equals(clientGameState.FocusedPlayerId))
             {
-                Clients.Others.EnableAnswerSubmission();
+                clientGameState.CanSubmitAnswer = true;
+                Clients.Others.ServerUpdate(clientGameState);
             }
             else if (gameController.IsLastAnswer(gameKey))
             {
-                Clients.All.DisplayQuestionStats(gameController.GetQuestionStats(gameKey));
+                try
+                {
+                    var clientGameStateList = gameController.CalculateFocusedClientQuestionStats(gameKey);
+
+                    //Iterate through all the players and send each one its game state
+                    foreach (M_Player player in clientGameState.PlayerList)
+                    {
+                        var result = from cGameState in clientGameStateList
+                                     where player.PlayerId.Equals(cGameState.QuestionStats.PlayerId)
+                                     select cGameState;
+
+                        Clients.Client(player.SignalRConnectionId).ServerUpdate(result.First());
+                    }
+                }
+                catch (Exception e)
+                {
+                    Clients.Caller.DisplayError("Didn't calculate the question stats.", e);
+                }
             }
         }
 
@@ -115,30 +140,40 @@ namespace SignalR_Server.Hubs
             {
                 if (gameController.IsGameOver(gameKey))
                 {
-                    Clients.Group(gameKey).DisplayGameStats(gameController.GetGameStats(gameKey));
-                    Groups.Remove(Context.ConnectionId, gameKey);
+                    //Ask the controller to begin a new round
+                    var clientGameState = gameController.EndGame(gameKey);
+
+                    UpdateGroupForNewQuestion(clientGameState);
                 }
                 else
                 {
-                    gameController.BeginNewRound(gameKey);
+                    //Ask the controller to begin a new round
+                    var clientGameState = gameController.BeginNewRound(gameKey);
 
-                    var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);
-                    Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Item1, PlayerAndQuestion.Item2);
+                    UpdateGroupForNewQuestion(clientGameState);
                 }
             }
             else
             {
-                gameController.BeginNewQuestion(gameKey);
+                var clientGameState = gameController.BeginNewQuestion(gameKey);
 
-                var PlayerAndQuestion = gameController.GetFocusedPlayerIdAndQuestion(gameKey);
-                Clients.Group(gameKey).DisplayQuestion(PlayerAndQuestion.Item1, PlayerAndQuestion.Item2);
+                UpdateGroupForNewQuestion(clientGameState);
             }
+        }
+
+        //Client requests update to question db
+        public void RequestQuestionListUpdate(DateTimeOffset clientLastUpdate)
+        {
+            CheckAuthorization();
+
+            Clients.Caller.PushQuestionCards(gameController.GetModifiedQuestionListFromDb(clientLastUpdate));
         }
 
         #endregion
 
         #region Helper Methods
 
+        //Checks to make sure the client is authorized to access the server methods
         private void CheckAuthorization()
         {
             var token = Context.Headers.Get("authtoken");
@@ -149,14 +184,32 @@ namespace SignalR_Server.Hubs
             }
             else
             {
-                throw new Exception("Client not authorized for this method.");
+                Clients.Caller.DisplayError("You're not authorized to use this method.");
             }
         }
 
-        private void UpdatePlayerListScreen(string gameKey)
+        //Updates all clients in the group with the new client game state
+        private void UpdateGroup(M_Client_GameState clientGameState)
         {
-            Clients.Caller.DisplayGameKey(gameKey);
-            Clients.Group(gameKey).DisplayPlayerList(gameController.GetPlayerList(gameKey));
+            Clients.Group(clientGameState.GameKey).ServerUpdate(clientGameState);
+        }
+
+        //Updates the group for a new question and lets the focused player answer
+        private void UpdateGroupForNewQuestion(M_Client_GameState clientGameState)
+        {
+            //Pull out the connection id for the focused player
+            var result = from player in clientGameState.PlayerList
+                         where player.PlayerId == clientGameState.FocusedPlayerId
+                         select player.SignalRConnectionId;
+
+            var focusedPlayerConnectionId = result.First();
+
+            //Send out client updates
+            Clients.Group(clientGameState.GameKey, focusedPlayerConnectionId).ServerUpdate(clientGameState);
+
+            //Allow the focused player to submit answer
+            clientGameState.CanSubmitAnswer = true;
+            Clients.Client(focusedPlayerConnectionId).ServerUpdate(clientGameState);
         }
 
         #endregion

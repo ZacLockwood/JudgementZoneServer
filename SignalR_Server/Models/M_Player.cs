@@ -12,6 +12,12 @@ namespace SignalR_Server.Models
 		[BsonElement("PlayerName")]
 		public string PlayerName { get; set; }
 
+        [BsonElement("SignalRConnectionId")]
+        public string SignalRConnectionId { get; set; }
+
+        [BsonElement("IsReadyToStart")]
+        public bool IsReadyToStart { get; set; }
+
         public M_Player()
         {
         }

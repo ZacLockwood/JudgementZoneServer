@@ -12,7 +12,7 @@ namespace SignalR_Server.Models
 		[BsonElement("PlayerAnswer")]
 		public int PlayerAnswer { get; set; }
 
-		[BsonElement("GameId")]
+		[BsonElement("GameKey")]
 		public string GameId { get; set; }
 
         public M_PlayerAnswer()
@@ -22,6 +22,13 @@ namespace SignalR_Server.Models
         public M_PlayerAnswer(string pId)
         {
             PlayerId = pId;
+        }
+
+        public M_PlayerAnswer(string pId, int pAnswer, string gId)
+        {
+            PlayerId = pId;
+            PlayerAnswer = pAnswer;
+            GameId = gId;
         }
     }
 }
